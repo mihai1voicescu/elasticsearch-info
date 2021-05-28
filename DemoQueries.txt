@@ -1,0 +1,248 @@
+# let's see the mapping
+GET kibana_sample_data_ecommerce/_mapping
+
+# get all elements
+GET kibana_sample_data_ecommerce/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+# limit returned results
+GET kibana_sample_data_ecommerce/_search?size=1
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+GET kibana_sample_data_ecommerce/_search
+{
+  "size": 1,
+  "query": {
+    "match_all": {}
+  }
+}
+
+# search for an item by text
+GET kibana_sample_data_ecommerce/_search
+{
+  "query": {
+    "match": {
+      "customer_full_name": "Bailey"
+    }
+  }
+}
+
+## this works in embeded fields
+GET kibana_sample_data_ecommerce/_search
+{
+  "query": {
+    "match": {
+      "products.product_name": {
+        "query": "dress"
+      }
+    }
+  }
+}
+
+# filter returned fields
+GET kibana_sample_data_ecommerce/_search?size=1
+{
+  "_source": [
+    "customer_full_name",
+    "geoip.continent_name"
+  ],
+  "query": {
+    "match_all": {}
+  }
+}
+
+# filter results by field (term query)
+GET kibana_sample_data_ecommerce/_search?size=1
+{
+  "query": {
+    "term": {
+      "currency": "EUR"
+    }
+  }
+}
+
+
+# filter results by term multiple values
+GET kibana_sample_data_ecommerce/_search?size=1
+{
+  "query": {
+"terms": {
+      "currency": [
+        "EUR",
+        "USD"
+      ]
+    }
+  }
+}
+
+# negative filter
+GET kibana_sample_data_ecommerce/_search?size=1
+{
+  "query": {
+    "bool": {
+      "must_not": [
+        {
+          "term": {
+            "currency": "EUR"
+          }
+        }
+      ]
+    }
+  }
+}
+
+# filter results by range field
+GET kibana_sample_data_ecommerce/_search?size=10
+{
+  "query": {
+    "range": {
+      "taxful_total_price": {
+        "gte": 200,
+        "lte": 300
+      }
+    }
+  }
+}
+
+# sort results
+GET kibana_sample_data_ecommerce/_search?size=1
+{
+  "sort": [
+    {
+      "taxful_total_price": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+
+# should (OR) results
+GET kibana_sample_data_ecommerce/_search?size=1
+{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "term": {
+            "customer_gender": "MALE"
+          }
+        },
+        {
+          "term": {
+            "day_of_week": "Saturday"
+          }
+        }
+      ]
+    }
+  }
+}
+
+# must (AND) filter
+GET kibana_sample_data_ecommerce/_search?size=1
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "customer_gender": "MALE"
+          }
+        },
+        {
+          "term": {
+            "day_of_week": "Saturday"
+          }
+        }
+      ]
+    }
+  }
+}
+
+# collapse (get top result)
+GET kibana_sample_data_ecommerce/_search
+{
+  "sort": [
+    {
+      "taxful_total_price": {
+        "order": "desc"
+      }
+    }
+  ],
+  "collapse": {
+    "field": "geoip.continent_name"
+  }
+}
+
+## get top 5 latest
+GET kibana_sample_data_ecommerce/_search
+{
+  "sort": [
+    {
+      "taxful_total_price": {
+        "order": "desc"
+      }
+    }
+  ],
+  "collapse": {
+    "field": "geoip.continent_name",
+    "inner_hits": {
+            "name": "latest_orders",
+            "size": 5,
+            "sort": [{ "order_date": "desc" }]
+        }
+  }
+}
+
+## get only top 5 latest
+GET kibana_sample_data_ecommerce/_search
+{
+  "_source": "",
+  "collapse": {
+    "field": "geoip.continent_name",
+    "inner_hits": {
+            "name": "latest_orders",
+            "size": 5,
+            "sort": [{ "order_date": "desc" }]
+        }
+  }
+}
+
+# perform aggregation (total sum)
+GET kibana_sample_data_ecommerce/_search
+{
+  "size": 0,
+    "aggs" : {
+        "total" : { "sum" : { "field" : "taxful_total_price" } }
+    }
+}
+
+# chain aggregation
+GET kibana_sample_data_ecommerce/_search
+{
+  "size": 0,
+  "aggs": {
+    "continent": {
+      "terms": {
+        "field": "geoip.continent_name",
+        "order": {
+          "total": "desc"
+        }
+      },
+      "aggs": {
+        "total": {
+          "sum": {
+            "field": "taxful_total_price"
+          }
+        }
+      }
+    }
+  }
+}
